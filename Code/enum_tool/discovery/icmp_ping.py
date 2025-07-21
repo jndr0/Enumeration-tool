@@ -4,19 +4,19 @@ from concurrent.futures import ThreadPoolExecutor
 
 def icmp_ping_host(ip):
     pkt = IP(dst=str(ip))/ICMP()
-    resp = sr1(pkt, timeout=1, verbose=False)
+    resp = sr1(pkt, timeout=0.5, verbose=False)
     if resp:
         return str(ip)
     return None
 
 def icmp_ping(network_cidr):
-    print(f"[+] Escaneando red {network_cidr} con ICMP Ping...")
+    print(f"[+] Escaneando red {network_cidr} con ICMP Ping ...")
     active_hosts = []
 
     ip_net = ipaddress.ip_network(network_cidr, strict=False)
     hosts = list(ip_net.hosts())
 
-    with ThreadPoolExecutor(max_workers=100) as executor:
+    with ThreadPoolExecutor(max_workers=500) as executor:
         results = executor.map(icmp_ping_host, hosts)
 
     for ip in results:

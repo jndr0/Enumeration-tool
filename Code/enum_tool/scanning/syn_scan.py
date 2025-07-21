@@ -1,16 +1,23 @@
-from scapy.all import IP, TCP, sr
+from scapy.all import IP, TCP, sr1
 from concurrent.futures import ThreadPoolExecutor
 
+def syn_scan_port(ip, port):
+    pkt = IP(dst=ip)/TCP(dport=port, flags='S')
+    resp = sr1(pkt, timeout=0.5, verbose=0)
+    if resp and resp.haslayer(TCP) and resp[TCP].flags == 0x12:
+        return port
+    return None
+
 def syn_scan(ip, start_port, end_port):
-    print(f"[+] Realizando SYN Scan sobre {ip} (puertos {start_port}-{end_port})...")
+    print(f"[+] Realizando SYN Scan sobre {ip} ...")
     open_ports = []
     ports = range(start_port, end_port + 1)
-    packets = [IP(dst=ip)/TCP(dport=p, flags='S') for p in ports]
 
-    answered, _ = sr(packets, timeout=2, verbose=0)
+    with ThreadPoolExecutor(max_workers=500) as executor:
+        results = executor.map(lambda p: syn_scan_port(ip, p), ports)
 
-    for send, recv in answered:
-        if recv.haslayer(TCP) and recv[TCP].flags == 0x12:  # SYN-ACK
-            open_ports.append(recv[TCP].sport)
+    for port in results:
+        if port:
+            open_ports.append(port)
 
     return open_ports
