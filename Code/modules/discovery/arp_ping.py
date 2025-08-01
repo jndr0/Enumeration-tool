@@ -9,7 +9,7 @@ def arp_ping(network_cidr):
     print(f"[+] Escaneando red {network_cidr} con ARP...")
     arp = ARP(pdst=network_cidr)
     ether = Ether(dst="ff:ff:ff:ff:ff:ff")
-    packet = ether/arp
+    packet = ether / arp
 
     result = srp(packet, timeout=2, verbose=False)[0]
     devices = []
@@ -18,3 +18,11 @@ def arp_ping(network_cidr):
         devices.append({'ip': received.psrc, 'mac': received.hwsrc})
 
     return devices
+
+def run(target):
+    devices = arp_ping(target)
+    if devices:
+        for dev in devices:
+            print(f"[✓] Host encontrado: {dev['ip']} - MAC: {dev['mac']}")
+    else:
+        print("[-] No se han detectado hosts activos.")
