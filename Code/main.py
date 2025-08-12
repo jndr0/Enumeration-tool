@@ -4,7 +4,7 @@ from colorama import Fore, Style, init as colorama_init
 
 # Importación de módulos por categoría
 from modules.discovery import arp_ping, icmp_ping, tcp_ping
-from modules.scanning import port_scan, syn_scan, tcp_connect, banner_grabbing
+from modules.scanning import port_scan, syn_scan, tcp_connect, banner_grabbing, ack_scan
 from modules.fingerprinting import os_detect, service_detection
 
 def run_discovery(args):
@@ -34,6 +34,11 @@ def run_scanning(args):
                 print(f"{Fore.RED}[-] Debes especificar un puerto con --port para banner grabbing.{Style.RESET_ALL}")
             else:
                 banner_grabbing.run(ip, args.port)
+        elif args.scan_type == 'ack':
+            if args.port is None:
+                print(f"{Fore.RED}[-] Debes especificar un puerto con --port para ACK scan.{Style.RESET_ALL}")
+            else:
+                ack_scan.run_ack_scan([ip], [args.port])
         else:
             print(f"{Fore.RED}[-] Tipo de escaneo no válido.{Style.RESET_ALL}")
 
@@ -87,7 +92,7 @@ def main():
     # Scan
     scan_parser = subparsers.add_parser('scan')
     scan_parser.add_argument('--target', required=True, nargs='+')
-    scan_parser.add_argument('--scan-type', choices=['port', 'syn', 'tcp-connect', 'banner'], required=True)
+    scan_parser.add_argument('--scan-type', choices=['port', 'syn', 'tcp-connect', 'banner', 'ack'], required=True)
     scan_parser.add_argument('--port-range', default='1-1024')
     scan_parser.add_argument('--port', type=int)
 
