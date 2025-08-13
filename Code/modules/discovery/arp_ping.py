@@ -15,7 +15,7 @@ def arp_ping(network_cidr, timeout=1):
         ether = Ether(dst="ff:ff:ff:ff:ff:ff")
         packet = ether / arp
 
-        result = srp(packet, timeout=timeout, verbose=False)[0]
+        result = srp(packet, timeout=timeout,promisc=True, verbose=False)[0]
         devices = []
 
         for sent, received in result:
