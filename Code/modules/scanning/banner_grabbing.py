@@ -9,3 +9,17 @@ def grab_banner(ip, port):
             return banner.decode(errors="ignore")
     except Exception as e:
         return None
+
+def run(ip, ports):
+    """
+    Ejecuta grab_banner para una IP y lista de puertos
+    """
+    if isinstance(ports, int):
+        ports = [ports]
+    
+    for port in ports:
+        banner = grab_banner(ip, port)
+        if banner:
+            print(f"[+] {ip}:{port} Banner:\n{banner}\n")
+        else:
+            print(f"[-] {ip}:{port} Sin respuesta o puerto cerrado")
