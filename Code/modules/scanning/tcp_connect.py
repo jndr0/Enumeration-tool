@@ -1,5 +1,8 @@
 import socket
 from concurrent.futures import ThreadPoolExecutor
+from colorama import Fore, Style, init
+
+init(autoreset=True)
 
 def scan_port(ip, port):
     try:
@@ -9,7 +12,7 @@ def scan_port(ip, port):
         return None
 
 def tcp_connect_scan(ip, start_port, end_port):
-    print(f"[+] Escaneando puertos en {ip} ...")
+    print(f"{Fore.CYAN}[+] Escaneando puertos en {ip} ...{Style.RESET_ALL}")
     open_ports = []
     ports = range(start_port, end_port + 1)
 
@@ -18,6 +21,21 @@ def tcp_connect_scan(ip, start_port, end_port):
 
     for port in results:
         if port:
+            print(f"{Fore.GREEN}[+] Puerto abierto: {port}{Style.RESET_ALL}")
             open_ports.append(port)
 
+    if not open_ports:
+        print(f"{Fore.RED}[-] No se encontraron puertos abiertos en {ip}{Style.RESET_ALL}")
+
     return open_ports
+
+def run(targets, start_port, end_port):
+    """
+    Ejecuta el TCP connect scan para una IP o lista de IPs
+    """
+    if isinstance(targets, str):
+        targets = [targets]
+
+    for ip in targets:
+        tcp_connect_scan(ip, start_port, end_port)
+
