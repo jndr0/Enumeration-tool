@@ -1,25 +1,31 @@
 from scapy.all import IP, TCP, sr1
 from colorama import Fore, Style, init
+import sys
 
 init(autoreset=True)
 
 def detect_os(ip):
-    pkt = IP(dst=ip)/TCP(dport=80, flags='S')
-    resp = sr1(pkt, timeout=2, verbose=0)
+    try:
+        pkt = IP(dst=ip)/TCP(dport=80, flags='S')
+        resp = sr1(pkt, timeout=2, verbose=0)
 
-    if resp:
-        ttl = resp.ttl
-        window = resp[TCP].window
-        if ttl <= 64:
-            os_guess = "Linux/Unix (probable)"
-        elif ttl <= 128:
-            os_guess = "Windows (probable)"
+        if resp:
+            ttl = resp.ttl
+            window = resp[TCP].window
+            if ttl <= 64:
+                os_guess = "Linux/Unix (probable)"
+            elif ttl <= 128:
+                os_guess = "Windows (probable)"
+            else:
+                os_guess = "Desconocido"
+
+            return {"ip": ip, "ttl": ttl, "window": window, "os_guess": os_guess}
         else:
-            os_guess = "Desconocido"
-
-        return {"ip": ip, "ttl": ttl, "window": window, "os_guess": os_guess}
-    else:
-        return {"ip": ip, "error": "Sin respuesta"}
+            return {"ip": ip, "error": "Sin respuesta"}
+    except PermissionError:
+        return {"ip": ip, "error": "Se requieren permisos de administrador/root para enviar paquetes"}
+    except Exception as e:
+        return {"ip": ip, "error": f"Error desconocido: {e}"}
 
 def run(targets):
     """
