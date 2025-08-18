@@ -66,7 +66,7 @@ def main():
     # Modo Fingerprinting
     parser.add_argument("-F", "--fingerprint", choices=["os", "services"], help="Fingerprinting de SO o servicios")
 
-    # Puertos 
+    # Puertos
     parser.add_argument("-p", "--ports", type=str, help="Lista o rango de puertos (ej: 80,443,1000-2000)")
 
     args = parser.parse_args()
@@ -78,6 +78,9 @@ def main():
     if args.discover:
         run_discovery(args.discover, args.target)
     elif args.scan:
+        # Para port_scan, banner o ack, los puertos son obligatorios
+        if args.scan == "port" and not ports:
+            parser.error("-p/--ports es obligatorio para el modo 'port'")
         if args.scan in ["banner", "ack"] and not ports:
             parser.error("-p/--ports es obligatorio para los modos 'banner' o 'ack'")
         run_scanning(args.scan, args.target, ports)
