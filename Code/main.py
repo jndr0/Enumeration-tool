@@ -1,87 +1,92 @@
 import argparse
+import sys
 from colorama import Fore, Style, init as colorama_init
+
+# Importación de módulos (ajusta las rutas según tu estructura)
+from modules.discovery import arp_ping, icmp_ping, tcp_ping
+from modules.scanning import port_scan, syn_scan, tcp_connect, banner_grabbing, ack_scan
+from modules.fingerprinting import os_detect, service_detection
 
 colorama_init()
 
+def parse_ports(port_str):
+    ports = []
+    for part in port_str.split(","):
+        if "-" in part:
+            start, end = map(int, part.split("-"))
+            ports.extend(range(start, end + 1))
+        else:
+            ports.append(int(part))
+    return ports
+
+def run_discovery(method, targets):
+    for ip in targets:
+        print(f"{Fore.CYAN}[+] Descubrimiento en {ip}{Style.RESET_ALL}")
+        if method == 'arp':
+            arp_ping.run(ip)
+        elif method == 'icmp':
+            icmp_ping.run(ip)
+        elif method == 'tcp':
+            tcp_ping.run(ip)
+
+def run_scanning(scan_type, targets, ports):
+    for ip in targets:
+        print(f"{Fore.CYAN}[+] Escaneo en {ip}{Style.RESET_ALL}")
+        if scan_type == 'port' and ports:
+            port_scan.run(ip, min(ports), max(ports))
+        elif scan_type == 'syn':
+            syn_scan.run(ip)
+        elif scan_type == 'tcp-connect':
+            tcp_connect.run(ip)
+        elif scan_type == 'banner' and ports:
+            for p in ports:
+                banner_grabbing.run(ip, p)
+        elif scan_type == 'ack' and ports:
+            for p in ports:
+                ack_scan.run_ack_scan([ip], [p])
+
+def run_fingerprinting(fp_type, targets, ports):
+    for ip in targets:
+        print(f"{Fore.CYAN}[+] Fingerprinting en {ip}{Style.RESET_ALL}")
+        if fp_type == 'os':
+            os_detect.run(ip)
+        elif fp_type == 'services' and ports:
+            service_detection.detect_services(ip, ports)
+
 def main():
-    parser = argparse.ArgumentParser(
-        description=(
-            f"{Fore.CYAN}Herramienta de enumeración y escaneo para redes internas{Style.RESET_ALL}\n\n"
-            f"{Fore.YELLOW}Ejemplos de uso:{Style.RESET_ALL}\n"
-            f"  {Fore.GREEN}Descubrimiento ARP:{Style.RESET_ALL}\n"
-            "    python tool.py --target 192.168.1.0/24 discover --method arp\n\n"
-            f"  {Fore.GREEN}Escaneo SYN en un host:{Style.RESET_ALL}\n"
-            "    python tool.py --target 192.168.1.10 scan --scan-type syn\n\n"
-            f"  {Fore.GREEN}Banner grabbing en un puerto:{Style.RESET_ALL}\n"
-            "    python tool.py --target 192.168.1.10 scan --scan-type banner --port 80\n\n"
-            f"  {Fore.GREEN}Fingerprinting de servicios:{Style.RESET_ALL}\n"
-            "    python tool.py --target 192.168.1.10 fingerprint --fp-type services --ports 21 22 80\n"
-        ),
-        formatter_class=argparse.RawTextHelpFormatter
-    )
+    parser = argparse.ArgumentParser(description="Herramienta de enumeración y escaneo para redes internas.")
+    parser.add_argument("--target", "-T", required=True, nargs="+", help="IP(s) o red(es) objetivo")
 
-    parser.add_argument(
-        "--target", required=True, nargs="+",
-        help=f"{Fore.YELLOW}IP(s) o red(es) objetivo{Style.RESET_ALL} (ej: 192.168.1.1 o 192.168.1.0/24)"
-    )
+    # Modo Discover
+    parser.add_argument("-D", "--discover", choices=["arp", "icmp", "tcp"], help="Descubrimiento de hosts")
 
-    subparsers = parser.add_subparsers(
-        title=f"{Fore.CYAN}Modos disponibles{Style.RESET_ALL}",
-        dest="mode",
-        metavar="MODE",
-        help="Selecciona un modo (usa 'MODE --help' para más detalles)"
-    )
-    subparsers.required = True
+    # Modo Scan
+    parser.add_argument("-S", "--scan", choices=["port", "syn", "tcp-connect", "banner", "ack"], help="Tipo de escaneo")
 
-    # DISCOVER
-    discover_parser = subparsers.add_parser(
-        "discover",
-        help=f"{Fore.GREEN}Descubrimiento de hosts (ARP, ICMP, TCP){Style.RESET_ALL}",
-        description=f"{Fore.CYAN}Permite descubrir hosts activos en la red mediante diferentes métodos.{Style.RESET_ALL}"
-    )
-    discover_parser.add_argument(
-        "--method", required=True, choices=["arp", "icmp", "tcp"],
-        help=f"{Fore.YELLOW}Método de descubrimiento{Style.RESET_ALL}"
-    )
+    # Modo Fingerprinting
+    parser.add_argument("-F", "--fingerprint", choices=["os", "services"], help="Fingerprinting de SO o servicios")
 
-    # SCAN
-    scan_parser = subparsers.add_parser(
-        "scan",
-        help=f"{Fore.GREEN}Escaneo de puertos y servicios{Style.RESET_ALL}",
-        description=f"{Fore.CYAN}Escanea los puertos de los hosts detectados con diferentes técnicas.{Style.RESET_ALL}"
-    )
-    scan_parser.add_argument(
-        "--scan-type", required=True,
-        choices=["port", "syn", "tcp-connect", "banner", "ack"],
-        help=f"{Fore.YELLOW}Tipo de escaneo{Style.RESET_ALL}"
-    )
-    scan_parser.add_argument(
-        "--port-range", default="1-1024",
-        help=f"{Fore.YELLOW}Rango de puertos{Style.RESET_ALL} para 'port scan' (ej: 20-1000, por defecto 1-1024)"
-    )
-    scan_parser.add_argument(
-        "--port", type=int,
-        help=f"{Fore.YELLOW}Puerto específico{Style.RESET_ALL} (obligatorio para 'banner' y 'ack')"
-    )
-
-    # FINGERPRINT
-    fp_parser = subparsers.add_parser(
-        "fingerprint",
-        help=f"{Fore.GREEN}Fingerprinting de SO y servicios{Style.RESET_ALL}",
-        description=f"{Fore.CYAN}Obtiene información detallada sobre el sistema operativo y servicios de un host.{Style.RESET_ALL}"
-    )
-    fp_parser.add_argument(
-        "--fp-type", required=True, choices=["os", "services"],
-        help=f"{Fore.YELLOW}Tipo de fingerprinting{Style.RESET_ALL}"
-    )
-    fp_parser.add_argument(
-        "--ports", type=int, nargs="+",
-        help=f"{Fore.YELLOW}Lista de puertos{Style.RESET_ALL} (obligatorio si --fp-type services)"
-    )
+    # Puertos 
+    parser.add_argument("-p", "--ports", type=str, help="Lista o rango de puertos (ej: 80,443,1000-2000)")
 
     args = parser.parse_args()
 
-    print(f"{Fore.CYAN}[+] Ejecutando modo {args.mode}{Style.RESET_ALL}")
+    # Procesar puertos
+    ports = parse_ports(args.ports) if args.ports else None
+
+    # Validaciones condicionales
+    if args.discover:
+        run_discovery(args.discover, args.target)
+    elif args.scan:
+        if args.scan in ["banner", "ack"] and not ports:
+            parser.error("-p/--ports es obligatorio para los modos 'banner' o 'ack'")
+        run_scanning(args.scan, args.target, ports)
+    elif args.fingerprint:
+        if args.fingerprint == "services" and not ports:
+            parser.error("-p/--ports es obligatorio para fingerprint de servicios")
+        run_fingerprinting(args.fingerprint, args.target, ports)
+    else:
+        parser.print_help()
 
 if __name__ == "__main__":
     main()
