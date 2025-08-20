@@ -9,14 +9,16 @@ init(autoreset=True)
 socket.setdefaulttimeout(2)
 
 def grab_banner(ip, port):
-   
     try:
-        with socket.socket() as s:
-            s.connect((ip, port))
-            banner = s.recv(1024).decode(errors="ignore")
-            return banner.strip()
+        with socket.create_connection((ip, port), timeout=2) as s:
+            if port in [80, 8080, 8000, 8888]:  # HTTP
+                http_request = f"GET / HTTP/1.1\r\nHost: {ip}\r\n\r\n"
+                s.sendall(http_request.encode())
+            banner = s.recv(1024)
+            return banner.decode(errors="ignore").strip()
     except Exception:
         return None
+
 
 def detect_http(ip, port):
  
