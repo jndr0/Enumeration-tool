@@ -73,7 +73,7 @@ def main():
     parser.add_argument("-F", "--fingerprint", choices=["os", "services"], help="Fingerprinting de SO o servicios")
 
     # Puertos
-    parser.add_argument("-p", "--ports", type=str, help="Lista o rango de puertos (ej: 80,443,1000-2000)")
+    parser.add_argument("-p", "--ports", type=str,default=1-1024, help="Lista o rango de puertos (ej: 80,443,1000-2000)")
 
     # Mostrar versión/protocolo
     parser.add_argument("-V", "--version", action="store_true",
