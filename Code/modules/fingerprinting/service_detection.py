@@ -9,6 +9,7 @@ init(autoreset=True)
 socket.setdefaulttimeout(2)
 
 def grab_banner(ip, port):
+   
     try:
         with socket.socket() as s:
             s.connect((ip, port))
@@ -18,24 +19,36 @@ def grab_banner(ip, port):
         return None
 
 def detect_http(ip, port):
+ 
     try:
         with socket.socket() as s:
             s.connect((ip, port))
             http_request = f"GET / HTTP/1.1\r\nHost: {ip}\r\n\r\n"
             s.sendall(http_request.encode())
-            response = s.recv(2048).decode(errors="ignore")
-            match = re.search(r"Server:\s*(.*)", response, re.IGNORECASE)
+            response = s.recv(4096).decode(errors="ignore")
+
+            # Extraer primera línea (status)
+            first_line = response.split("\r\n")[0] if response else None
+
+            # Buscar cabecera Server
+            match = re.search(r"Server:\s*([^\r\n]*)", response, re.IGNORECASE)
             if match:
-                return f"HTTP Server: {match.group(1)}"
+                return f"HTTP Server: {match.group(1)} ({first_line})"
             if "HTTP/" in response:
-                return "HTTP service detected, no version info"
+                return f"HTTP service detected ({first_line}), no version info"
             return None
     except Exception:
         return None
 
 def detect_service(ip, port):
-    banner = grab_banner(ip, port)
 
+    if port in [80, 8080, 8000, 8888, 443]:
+        result = detect_http(ip, port)
+        if result:
+            return result
+
+
+    banner = grab_banner(ip, port)
     if banner:
         banner_lower = banner.lower()
         if "ssh" in banner_lower:
@@ -57,20 +70,9 @@ def detect_service(ip, port):
         else:
             return f"Unknown service (banner): {banner}"
 
-    if port in [80, 8080, 8000, 8888, 443]:
-        result = detect_http(ip, port)
-        if result:
-            return result
-
     return "No banner or response detected"
 
 def detect_services(ip, ports):
-    """
-    Detecta servicios en múltiples puertos y muestra los resultados por pantalla con color.
-    :param ip: Dirección IP destino
-    :param ports: Lista de puertos a analizar
-    :return: Diccionario {puerto: servicio_detectado}
-    """
     results = {}
     print(f"{Fore.YELLOW}[+] Iniciando detección de servicios en {ip}{Style.RESET_ALL}")
     for port in ports:
@@ -78,3 +80,4 @@ def detect_services(ip, ports):
         results[port] = service_info
         print(f"{Fore.CYAN}[{ip}:{port}]{Style.RESET_ALL} {Fore.GREEN}{service_info}{Style.RESET_ALL}")
     return results
+
