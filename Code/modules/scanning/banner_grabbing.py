@@ -21,5 +21,4 @@ def run(ip, ports):
         banner = grab_banner(ip, port)
         if banner:
             print(f"[+] {ip}:{port} Banner:\n{banner}\n")
-        else:
-            print(f"[-] {ip}:{port} Sin respuesta o puerto cerrado")
+        
