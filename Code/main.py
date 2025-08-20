@@ -56,10 +56,11 @@ def run_fingerprinting(fp_type, targets, ports, verbose=False):
             if verbose:
                 service_detection.detect_services(ip, ports)
             else:
-                # Solo banner básico
                 for port in ports:
                     banner = service_detection.grab_banner(ip, port)
-                    print(f"{Fore.CYAN}[{ip}:{port}]{Style.RESET_ALL} {banner}")
+                    if banner:  # Solo imprime si realmente hay algo
+                        print(f"{Fore.CYAN}[{ip}:{port}]{Style.RESET_ALL} {banner}")
+
 
 # ------------------- Main -------------------
 
