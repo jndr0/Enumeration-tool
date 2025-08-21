@@ -5,46 +5,51 @@ from colorama import Fore, Style, init
 # Inicializar colorama
 init(autoreset=True)
 
-# Evitar que sockets se cuelguen
+INFO = Fore.CYAN + "[+]" + Style.RESET_ALL
+OK   = Fore.GREEN + "[✓]" + Style.RESET_ALL
+ERROR = Fore.RED + "[-]" + Style.RESET_ALL
+WARN = Fore.YELLOW + "[!]" + Style.RESET_ALL
+
 socket.setdefaulttimeout(2)
 
 def grab_banner(ip, port):
+    """Obtiene el banner de un servicio TCP"""
     try:
         with socket.create_connection((ip, port), timeout=2) as s:
             if port in [80, 8080, 8000, 8888]:  # HTTP
-                http_request = f"GET / HTTP/1.1\r\nHost: {ip}\r\n\r\n"
-                s.sendall(http_request.encode())
+                request = f"GET / HTTP/1.1\r\nHost: {ip}\r\n\r\n"
+                s.sendall(request.encode())
             banner = s.recv(1024)
             return banner.decode(errors="ignore").strip()
     except Exception:
         return None
 
-def detect_http(ip, port):
+def http_header_fingerprint(ip, port):
+    """Evalúa cabeceras HTTP para obtener versión de software"""
     try:
-        with socket.socket() as s:
-            s.connect((ip, port))
-            http_request = f"GET / HTTP/1.1\r\nHost: {ip}\r\n\r\n"
-            s.sendall(http_request.encode())
+        with socket.create_connection((ip, port), timeout=2) as s:
+            request = f"GET / HTTP/1.1\r\nHost: {ip}\r\n\r\n"
+            s.sendall(request.encode())
             response = s.recv(4096).decode(errors="ignore")
 
-            # Extraer primera línea (status)
-            first_line = response.split("\r\n")[0] if response else None
-
-            # Buscar cabecera Server
             match = re.search(r"Server:\s*([^\r\n]*)", response, re.IGNORECASE)
             if match:
-                return f"HTTP Server: {match.group(1)} ({first_line})"
-            if "HTTP/" in response:
-                return f"HTTP service detected ({first_line}), no version info"
-            return None
+                return match.group(1).strip()
+            elif "HTTP/" in response:
+                return "HTTP service detected, no version info"
+            else:
+                return None
     except Exception:
         return None
 
 def detect_service(ip, port):
-    if port in [80, 8080, 8000, 8888, 443]:
-        result = detect_http(ip, port)
-        if result:
-            return result
+    """Detecta servicio y, si es HTTP, obtiene versión"""
+    http_ports = [80, 8080, 8000, 8888, 443]
+
+    if port in http_ports:
+        http_result = http_header_fingerprint(ip, port)
+        if http_result:
+            return f"HTTP Server: {http_result}"
 
     banner = grab_banner(ip, port)
     if banner:
@@ -68,16 +73,14 @@ def detect_service(ip, port):
         else:
             return f"Unknown service (banner): {banner}"
 
-    return None  # mejor que "No banner or response detected"
+    return f"{WARN} No banner o respuesta detectada{Style.RESET_ALL}"
 
 def detect_services(ip, ports):
+    """Detecta servicios en una lista de puertos y muestra resultados con colores"""
     results = {}
-    print(f"{Fore.YELLOW}[+] Iniciando detección de servicios en {ip}{Style.RESET_ALL}")
+    print(f"{INFO} Iniciando detección de servicios en {ip}")
     for port in ports:
         service_info = detect_service(ip, port)
-        if service_info:
-            print(f"{Fore.CYAN}[{ip}:{port}]{Style.RESET_ALL} {Fore.GREEN}{service_info}{Style.RESET_ALL}")
-        else:
-            print(f"{Fore.CYAN}[{ip}:{port}]{Style.RESET_ALL} {Fore.RED}Sin respuesta / No banner{Style.RESET_ALL}")
         results[port] = service_info
+        print(f"{Fore.CYAN}[{ip}:{port}]{Style.RESET_ALL} {OK} {service_info}")
     return results
