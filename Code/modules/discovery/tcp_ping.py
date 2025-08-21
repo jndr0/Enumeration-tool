@@ -3,7 +3,14 @@ from concurrent.futures import ThreadPoolExecutor
 import ipaddress
 from colorama import Fore, Style, init
 
+# Inicializar colorama
 init(autoreset=True)
+
+# Estilo estándar
+INFO    = Fore.CYAN + "[+]" + Style.RESET_ALL
+OK      = Fore.GREEN + "[OK]" + Style.RESET_ALL
+WARN    = Fore.YELLOW + "[!]" + Style.RESET_ALL
+ERROR   = Fore.RED + "[-]" + Style.RESET_ALL
 
 def tcp_ping_host(ip, port=80, timeout=0.3):
     """Comprueba si un host responde en un puerto TCP específico."""
@@ -40,19 +47,18 @@ def run(targets, port=80, timeout=0.3, max_workers=500):
         try:
             net = ipaddress.ip_network(target, strict=False)
             if net.num_addresses > 1:
-                print(f"{Fore.YELLOW}[+] Escaneando red {target} en puerto {port}...{Style.RESET_ALL}")
+                print(f"{INFO} Escaneando red {target} en puerto {port}...")
                 devices = tcp_ping(target, port, timeout, max_workers)
                 if devices:
                     for dev in devices:
-                        print(f"{Fore.GREEN}[✓] Host activo (TCP): {dev}{Style.RESET_ALL}")
+                        print(f"{OK} Host activo (TCP): {dev}")
                 else:
-                    print(f"{Fore.RED}[-] No se han detectado hosts activos en la red {target}{Style.RESET_ALL}")
+                    print(f"{WARN} No se han detectado hosts activos en la red {target}")
             else:
                 ip = tcp_ping_host(target, port, timeout)
                 if ip:
-                    print(f"{Fore.GREEN}[✓] Host activo (TCP): {ip}{Style.RESET_ALL}")
+                    print(f"{OK} Host activo (TCP): {ip}")
                 else:
-                    print(f"{Fore.RED}[-] Host inactivo o sin respuesta en puerto {port}: {target}{Style.RESET_ALL}")
+                    print(f"{ERROR} Host inactivo o sin respuesta en puerto {port}: {target}")
         except ValueError:
-            print(f"{Fore.RED}[-] Formato de IP o red no válido: {target}{Style.RESET_ALL}")
-
+            print(f"{ERROR} Formato de IP o red no válido: {target}")

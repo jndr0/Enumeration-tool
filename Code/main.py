@@ -4,7 +4,16 @@ from modules.discovery import arp_ping, icmp_ping, tcp_ping
 from modules.scanning import port_scan, syn_scan, tcp_connect, banner_grabbing, ack_scan
 from modules.fingerprinting import os_detect, service_detection
 
-colorama_init()
+colorama_init(autoreset=True)
+
+# ------------------- Estilo de salida -------------------
+INFO    = Fore.CYAN + "[+]" + Style.RESET_ALL
+OK      = Fore.GREEN + "[OK]" + Style.RESET_ALL
+WARN    = Fore.YELLOW + "[!]" + Style.RESET_ALL
+ERROR   = Fore.RED + "[-]" + Style.RESET_ALL
+DEBUG   = Fore.MAGENTA + "[DEBUG]" + Style.RESET_ALL
+
+# ------------------- Utils -------------------
 
 def parse_ports(port_str):
     """Convierte una cadena de puertos en lista de enteros"""
@@ -21,7 +30,7 @@ def parse_ports(port_str):
 
 def run_discovery(method, targets):
     for ip in targets:
-        print(f"{Fore.CYAN}[+] Descubrimiento en {ip}{Style.RESET_ALL}")
+        print(f"{INFO} Descubrimiento en {ip}")
         if method == 'arp':
             arp_ping.run(ip)
         elif method == 'icmp':
@@ -31,14 +40,14 @@ def run_discovery(method, targets):
 
 def run_scanning(scan_type, targets, ports, verbose=False):
     for ip in targets:
-        print(f"{Fore.CYAN}[+] Escaneo en {ip}{Style.RESET_ALL}")
+        print(f"{INFO} Escaneo en {ip}")
         if scan_type == 'port' and ports:
             port_scan.run(ip, min(ports), max(ports))
         elif scan_type == 'syn':
             syn_scan.run(ip)
         elif scan_type == 'tcp-connect':
             if not ports:
-                raise ValueError("Para tcp-connect scan, -p/--ports es obligatorio")
+                raise ValueError(f"{ERROR} Para tcp-connect scan, -p/--ports es obligatorio")
             tcp_connect.run(ip, min(ports), max(ports))
         elif scan_type == 'banner' and ports:
             for p in ports:
@@ -49,18 +58,14 @@ def run_scanning(scan_type, targets, ports, verbose=False):
 
 def run_fingerprinting(fp_type, targets, ports, verbose=False):
     for ip in targets:
-        print(f"{Fore.CYAN}[+] Fingerprinting en {ip}{Style.RESET_ALL}")
+        print(f"{INFO} Fingerprinting en {ip}")
+        
         if fp_type == 'os':
             os_detect.run(ip)
         elif fp_type == 'services' and ports:
+            service_results = service_detection.detect_services(ip, ports)
             if verbose:
-                service_detection.detect_services(ip, ports)
-            else:
-                for port in ports:
-                    banner = service_detection.grab_banner(ip, port)
-                    if banner:  # Solo imprime si realmente hay algo
-                        print(f"{Fore.CYAN}[{ip}:{port}]{Style.RESET_ALL} {banner}")
-
+                print(f"{DEBUG} Resultados detallados: {service_results}")
 
 # ------------------- Main -------------------
 
@@ -74,7 +79,8 @@ def main():
     parser.add_argument("-F", "--fingerprint", choices=["os", "services"], help="Fingerprinting de SO o servicios")
 
     # Puertos
-    parser.add_argument("-p", "--ports", type=str,default="1-1024", help="Lista o rango de puertos (ej: 80,443,1000-2000)")
+    parser.add_argument("-p", "--ports", type=str, default="1-1024",
+                        help="Lista o rango de puertos (ej: 80,443,1000-2000)")
 
     # Mostrar versión/protocolo
     parser.add_argument("-V", "--version", action="store_true",
@@ -90,11 +96,11 @@ def main():
         run_discovery(args.discover, args.target)
     elif args.scan:
         if args.scan in ["banner", "ack", "tcp-connect"] and not ports:
-            parser.error("-p/--ports es obligatorio para este tipo de escaneo")
+            parser.error(f"{ERROR} -p/--ports es obligatorio para este tipo de escaneo")
         run_scanning(args.scan, args.target, ports, verbose=args.version)
     elif args.fingerprint:
         if args.fingerprint == "services" and not ports:
-            parser.error("-p/--ports es obligatorio para fingerprint de servicios")
+            parser.error(f"{ERROR} -p/--ports es obligatorio para fingerprint de servicios")
         run_fingerprinting(args.fingerprint, args.target, ports, verbose=args.version)
     else:
         parser.print_help()

@@ -19,9 +19,7 @@ def grab_banner(ip, port):
     except Exception:
         return None
 
-
 def detect_http(ip, port):
- 
     try:
         with socket.socket() as s:
             s.connect((ip, port))
@@ -43,12 +41,10 @@ def detect_http(ip, port):
         return None
 
 def detect_service(ip, port):
-
     if port in [80, 8080, 8000, 8888, 443]:
         result = detect_http(ip, port)
         if result:
             return result
-
 
     banner = grab_banner(ip, port)
     if banner:
@@ -72,14 +68,16 @@ def detect_service(ip, port):
         else:
             return f"Unknown service (banner): {banner}"
 
-    return "No banner or response detected"
+    return None  # mejor que "No banner or response detected"
 
 def detect_services(ip, ports):
     results = {}
     print(f"{Fore.YELLOW}[+] Iniciando detección de servicios en {ip}{Style.RESET_ALL}")
     for port in ports:
         service_info = detect_service(ip, port)
+        if service_info:
+            print(f"{Fore.CYAN}[{ip}:{port}]{Style.RESET_ALL} {Fore.GREEN}{service_info}{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.CYAN}[{ip}:{port}]{Style.RESET_ALL} {Fore.RED}Sin respuesta / No banner{Style.RESET_ALL}")
         results[port] = service_info
-        print(f"{Fore.CYAN}[{ip}:{port}]{Style.RESET_ALL} {Fore.GREEN}{service_info}{Style.RESET_ALL}")
     return results
-

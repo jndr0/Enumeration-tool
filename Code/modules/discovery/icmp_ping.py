@@ -4,7 +4,14 @@ from concurrent.futures import ThreadPoolExecutor
 from colorama import Fore, Style, init
 import time
 
+# Inicializar colorama
 init(autoreset=True)
+
+# Estilo estándar
+INFO    = Fore.CYAN + "[+]" + Style.RESET_ALL
+OK      = Fore.GREEN + "[OK]" + Style.RESET_ALL
+WARN    = Fore.YELLOW + "[!]" + Style.RESET_ALL
+ERROR   = Fore.RED + "[-]" + Style.RESET_ALL
 
 def icmp_ping_host(ip, timeout=1):
     """Envía un ping ICMP a un host y devuelve la IP si responde."""
@@ -16,12 +23,12 @@ def icmp_ping_host(ip, timeout=1):
             rtt = (time.time() - start) * 1000  # ms
             return str(ip), round(rtt, 2)
     except PermissionError:
-        print(f"{Fore.RED}[-] Necesitas ejecutar como administrador/root para usar ICMP.{Style.RESET_ALL}")
+        print(f"{ERROR} Necesitas ejecutar como administrador/root para usar ICMP.")
     return None
 
 def icmp_ping(network_cidr, timeout=1):
     """Escanea todos los hosts de una red con ICMP."""
-    print(f"{Fore.YELLOW}[+] Escaneando red {network_cidr} con ICMP Ping ...{Style.RESET_ALL}")
+    print(f"{INFO} Escaneando red {network_cidr} con ICMP Ping ...")
     active_hosts = []
 
     ip_net = ipaddress.ip_network(network_cidr, strict=False)
@@ -45,17 +52,17 @@ def run(target):
             devices = icmp_ping(target)
             if devices:
                 for ip, rtt in devices:
-                    print(f"{Fore.GREEN}[✓] Host activo: {ip} - RTT: {rtt} ms{Style.RESET_ALL}")
+                    print(f"{OK} Host activo: {ip} - RTT: {rtt} ms")
             else:
-                print(f"{Fore.RED}[-] No se han detectado hosts activos en la red.{Style.RESET_ALL}")
+                print(f"{WARN} No se han detectado hosts activos en la red.")
 
         else:  # IP individual
             result = icmp_ping_host(target)
             if result:
                 ip, rtt = result
-                print(f"{Fore.GREEN}[✓] Host activo: {ip} - RTT: {rtt} ms{Style.RESET_ALL}")
+                print(f"{OK} Host activo: {ip} - RTT: {rtt} ms")
             else:
-                print(f"{Fore.RED}[-] Host inactivo o sin respuesta: {target}{Style.RESET_ALL}")
+                print(f"{ERROR} Host inactivo o sin respuesta: {target}")
 
     except ValueError:
-        print(f"{Fore.RED}[-] Formato de IP o red no válido: {target}{Style.RESET_ALL}")
+        print(f"{ERROR} Formato de IP o red no válido: {target}")
