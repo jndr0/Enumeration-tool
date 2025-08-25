@@ -82,5 +82,6 @@ def detect_services(ip, ports):
     for port in ports:
         service_info = detect_service(ip, port)
         results[port] = service_info
-        print(f"{Fore.CYAN}[{ip}:{port}]{Style.RESET_ALL} {OK} {service_info}")
+        if service_info:
+            print(f"{Fore.CYAN}[{ip}:{port}]{Style.RESET_ALL} {OK} {service_info}")
     return results
