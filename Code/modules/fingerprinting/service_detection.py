@@ -73,7 +73,7 @@ def detect_service(ip, port):
         else:
             return f"Unknown service (banner): {banner}"
 
-    return 
+    
 
 def detect_services(ip, ports):
     """Detecta servicios en una lista de puertos y muestra resultados con colores"""
